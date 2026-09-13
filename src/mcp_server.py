@@ -29,17 +29,46 @@ class MCPAcademicServer:
     def call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
         """
         [TASK 2.1] HỌC VIÊN HOÀN THIỆN HÀM THỰC THI TOOL TRÊN MCP SERVER
-        Thực thi request gọi Tool theo chuẩn MCP JSON-RPC
+        Thực thi request gọi Tool theo chuẩn MCP JSON-RPC 2.0.
+
+        Quy trình xử lý:
+          1. Nhận yêu cầu gọi Tool từ MCP Client (Agent Core).
+          2. Điều phối Tool thực thi qua hàm `dispatch_tool_call()` trong tools.py.
+          3. Parse chuỗi JSON trả về thành Python Dict.
+          4. Đóng gói phản hồi theo chuẩn JSON-RPC 2.0 với các trường:
+             jsonrpc, server (tên MCP Server), tool (tên tool), result (payload).
+          5. Nếu Tool dispatch trả về chuỗi rỗng hoặc parse lỗi, vẫn đóng gói JSON-RPC
+             với result rỗng để Agent nhận biết cần xử lý tiếp.
         """
-        # --------------------------------------------------------------------------
-        # TODO 2.1: HỌC VIÊN HOÀN THIỆN HÀM GỌI TOOL CHUẨN MCP JSON-RPC
-        # 🎯 YÊU CẦU THỰC THI THUẬT TOÁN:
-        # 1. Gọi hàm dispatch_tool_call(tool_name, arguments) để lấy chuỗi JSON kết quả từ Tool Router.
-        # 2. Chuyển đổi chuỗi JSON kết quả thành Python Dictionary (dùng json.loads).
-        # 3. Đóng gói phản hồi và trả về Dict theo đúng chuẩn giao thức MCP JSON-RPC 2.0:
-        #    - Các trường bắt buộc: "jsonrpc": "2.0", "server": self.server_name, "tool": tool_name, "result": content
-        # --------------------------------------------------------------------------
-        return {}
+        try:
+            # (1) Gọi Tool Router để thực thi Tool và nhận về chuỗi JSON
+            raw_response = dispatch_tool_call(tool_name, arguments)
+
+            # (2) Parse chuỗi JSON thành Python Dictionary
+            try:
+                content = json.loads(raw_response) if raw_response else {}
+            except (json.JSONDecodeError, TypeError):
+                # Nếu Tool trả về chuỗi không phải JSON hợp lệ, gói vào dict báo lỗi parse
+                content = {
+                    "status": "PARSE_ERROR",
+                    "error": f"Tool '{tool_name}' trả về chuỗi không hợp lệ JSON.",
+                    "raw_output": raw_response,
+                }
+
+        except Exception as e:
+            # (3) Bảo vệ lỗi ngoại lệ trong quá trình dispatch tool
+            content = {
+                "status": "DISPATCH_ERROR",
+                "error": f"Lỗi khi dispatch tool '{tool_name}': {str(e)}",
+            }
+
+        # (4) Đóng gói phản hồi chuẩn JSON-RPC 2.0
+        return {
+            "jsonrpc": "2.0",
+            "server": self.server_name,
+            "tool": tool_name,
+            "result": content,
+        }
 
 
 if __name__ == "__main__":

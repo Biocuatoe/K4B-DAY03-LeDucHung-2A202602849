@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trợ lý Học vụ VinUni - ReAct Agent Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Animation keyframes cho trace log fade-in */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes bounce {
+            0%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-8px);
+            }
+        }
+        
+        .animate-fade-in {
+            animation: fadeInUp 0.4s ease-out forwards;
+        }
+        
+        .typing-dot {
+            animation: bounce 1.4s ease-in-out infinite;
+        }
+        
+        .typing-dot:nth-child(1) { animation-delay: 0s; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        
+        /* Custom scrollbar */
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background: #a1a1a1;
+        }
+        
+        /* Highlight important steps */
+        .highlight-action {
+            box-shadow: 0 0 0 3px #fbbf24, 0 0 15px rgba(251, 191, 36, 0.5);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-50 to-purple-50 min-h-screen">
+    <!-- ==================== HEADER ==================== -->
+    <header class="bg-white/80 backdrop-blur-sm shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-800 flex items-center gap-2">
+                <span class="text-3xl">🤖</span>
+                <span class="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                    Trợ lý Học vụ VinUni
+                </span>
+            </h1>
+            <p class="text-gray-600 mt-1 text-sm md:text-base">
+                ReAct Agent Demo — Multi-step Reasoning & Tool Calling
+            </p>
+        </div>
+    </header>
+
+    <!-- ==================== MAIN CONTENT ==================== -->
+    <main class="max-w-7xl mx-auto px-4 py-6">
+        <!-- Test Cases Buttons -->
+        <div class="mb-6">
+            <div class="flex flex-wrap items-center gap-3 mb-4">
+                <span class="text-sm font-semibold text-gray-700">Test Cases:</span>
+                
+                <button onclick="runTestCase(1)" title="Trả lời trực tiếp bằng văn bản (không gọi Tool)"
+                    class="px-4 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg font-medium transition-all hover:shadow-md text-sm">
+                    TC01
+                </button>
+                
+                <button onclick="runTestCase(2)" title="1 tool call: academic_query(SV2026001) → SUCCESS"
+                    class="px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg font-medium transition-all hover:shadow-md text-sm">
+                    TC02
+                </button>
+                
+                <button onclick="runTestCase(3)" title="1 tool call: schedule_appointment(SV2026001, ...) → SUCCESS"
+                    class="px-4 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg font-medium transition-all hover:shadow-md text-sm">
+                    TC03
+                </button>
+                
+                <button onclick="runTestCase(4)" title="Multi-step: academic_query(SV2026002) → schedule_appointment(SV2026002, advisor=TS. Lê Thị B)"
+                    class="px-4 py-2 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-lg font-medium transition-all hover:shadow-md text-sm">
+                    TC04
+                </button>
+                
+                <button onclick="runTestCase(5)" title="1 tool call: academic_query(SV9999999) → NOT_FOUND (Anti-Hallucination)"
+                    class="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg font-medium transition-all hover:shadow-md text-sm">
+                    TC05
+                </button>
+            </div>
+            
+            <!-- Control Buttons -->
+            <div class="flex flex-wrap gap-3">
+                <button onclick="clearTraceLog()"
+                    class="px-5 py-2.5 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-semibold transition-all hover:shadow-lg flex items-center gap-2">
+                    <span>🗑️</span> Xóa Trace Log
+                </button>
+                
+                <button onclick="downloadTraceJSON()"
+                    class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold transition-all hover:shadow-lg flex items-center gap-2">
+                    <span>📥</span> Tải Trace JSON
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Grid Layout -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- ==================== LEFT: Chat Panel ==================== -->
+            <div class="md:col-span-2 bg-white rounded-2xl shadow-xl overflow-hidden">
+                <div class="bg-gradient-to-r from-indigo-500 to-purple-500 px-6 py-4">
+                    <h2 class="text-white font-bold text-lg flex items-center gap-2">
+                        <span>💬</span> Conversation
+                    </h2>
+                </div>
+                
+                <!-- Chat Messages Area -->
+                <div id="chatContainer" class="h-[500px] overflow-y-auto p-6 custom-scroll space-y-4">
+                    <!-- Welcome Message -->
+                    <div class="flex justify-start">
+                        <div class="bg-gray-100 rounded-2xl rounded-bl-md px-4 py-3 max-w-[85%]">
+                            <p class="text-gray-700">
+                                Xin chào! Tôi là <strong>Trợ lý Học vụ VinUni</strong>. 
+                                Tôi có thể giúp bạn:
+                            </p>
+                            <ul class="text-gray-600 text-sm mt-2 space-y-1">
+                                <li>• Giới thiệu quy chế học vụ VinUni</li>
+                                <li>• Tra cứu thông tin học vụ sinh viên</li>
+                                <li>• Đặt lịch hẹn tư vấn với cố vấn học tập</li>
+                            </ul>
+                            <p class="text-gray-500 text-sm mt-2">Click vào TC01-TC05 để thử nghiệm!</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Chat Input -->
+                <div class="border-t p-4 bg-gray-50">
+                    <div class="flex gap-3">
+                        <input type="text" id="chatInput" placeholder="Nhập câu hỏi của bạn..."
+                            class="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                            onkeypress="if(event.key === 'Enter') sendMessage()">
+                        <button onclick="sendMessage()" id="btnSend"
+                            class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold transition-all hover:shadow-lg">
+                            Gửi
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== RIGHT: Trace Log Panel ==================== -->
+            <div class="md:col-span-1 bg-white rounded-2xl shadow-xl overflow-hidden">
+                <div class="bg-gradient-to-r from-slate-700 to-slate-800 px-6 py-4">
+                    <h2 class="text-white font-bold text-lg flex items-center gap-2">
+                        <span>📊</span> Waterfall Trace Log
+                    </h2>
+                </div>
+                
+                <!-- Trace Log Content -->
+                <div id="traceLog" class="h-[500px] overflow-y-auto p-4 custom-scroll space-y-3">
+                    <div class="text-center text-gray-400 py-8">
+                        <p class="text-4xl mb-2">🔍</p>
+                        <p class="text-sm">Chọn test case để xem trace log</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== REAL API PANEL ==================== -->
+        <div id="real-api-panel" class="mt-6 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl shadow-lg">
+            <div class="flex items-center gap-2 mb-3">
+                <span class="text-2xl">🌐</span>
+                <h3 class="font-bold text-lg text-indigo-700">Real MCP API (MCP Server thật)</h3>
+            </div>
+            <p class="text-sm text-gray-600 mb-3">
+                Kết nối tới MCP Server qua HTTP wrapper. Cần chạy <code class="bg-gray-200 px-1 rounded">python src/api_server.py</code> trước.
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Endpoint URL</label>
+                    <input id="real-api-endpoint" type="text" 
+                           value="http://localhost:8765/api/chat" 
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Student ID (mặc định)</label>
+                    <input id="real-api-student-id" type="text" 
+                           value="SV2026001" 
+                           placeholder="SV2026001"
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+            </div>
+            <div class="mt-3">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Prompt / Câu hỏi</label>
+                <textarea id="real-api-prompt" 
+                          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" 
+                          rows="2" 
+                          placeholder="Nhập câu hỏi tự do hoặc để trống dùng prompt mặc định..."></textarea>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-2">
+                <button onclick="callRealAPI('query')" 
+                        class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium text-sm transition-all">
+                    🔍 Tra cứu Học vụ
+                </button>
+                <button onclick="callRealAPI('book')" 
+                        class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium text-sm transition-all">
+                    📅 Đặt Lịch Hẹn
+                </button>
+                <button onclick="callRealAPI('multi')" 
+                        class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-medium text-sm transition-all">
+                    🔄 Multi-step
+                </button>
+                <button onclick="checkHealth()" 
+                        class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium text-sm transition-all">
+                    🏥 Health Check
+                </button>
+            </div>
+            <div id="real-api-status" class="mt-3 hidden">
+                <div class="flex items-center gap-2">
+                    <span id="status-icon" class="text-lg">⏳</span>
+                    <span id="status-text" class="text-sm">Đang xử lý...</span>
+                </div>
+            </div>
+            <pre id="real-api-response" class="mt-3 bg-slate-800 text-green-400 p-3 rounded-lg text-xs overflow-auto max-h-64 font-mono hidden"></pre>
+        </div>
+    </main>
+
+    <!-- ==================== FOOTER ==================== -->
+    <footer class="bg-slate-800 text-white py-6 mt-8">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="text-center md:text-left">
+                    <p class="font-semibold">Học viên: Lê Đức Hưng | MSSV: 2A202602849 | Lớp: K4B</p>
+                </div>
+                <div class="text-center md:text-right text-slate-300 text-sm">
+                    <p>Provider: Mock (Browser) | Tools: academic_query, schedule_appointment</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ==================== JAVASCRIPT ==================== -->
+    <script>
+    // =========================================================================
+    // CƠ SỞ DỮ LIỆU MOCK
+    // =========================================================================
+    const MOCK_DATABASE = {
+        "SV2026001": {
+            full_name: "Nguyễn Văn An",
+            class: "AI-K4",
+            gpa: 3.85,
+            email: "an.nv@vinuni.edu.vn",
+            status: "Đang học",
+            advisor: "PGS.TS Nguyễn Văn A"
+        },
+        "SV2026002": {
+            full_name: "Trần Thị Bình",
+            class: "AI-K4",
+            gpa: 3.60,
+            email: "binh.tt@vinuni.edu.vn",
+            status: "Đang học",
+            advisor: "TS. Lê Thị B"
+        }
+    };
+
+    // =========================================================================
+    // TEST CASES
+    // =========================================================================
+    const TEST_CASES = [
+        {
+            id: "TC01",
+            question: "Chào bạn, bạn có thể giới thiệu quy chế học vụ cơ bản của Đại học VinUni không?",
+            expected: "Trả lời trực tiếp bằng văn bản (không gọi Tool)"
+        },
+        {
+            id: "TC02",
+            question: "Hãy tra cứu thông tin học vụ của sinh viên SV2026001.",
+            expected: "1 tool call: academic_query(SV2026001) → SUCCESS"
+        },
+        {
+            id: "TC03",
+            question: "Đặt lịch hẹn tư vấn học vụ cho sinh viên SV2026001 với cố vấn PGS.TS Nguyễn Văn A vào lúc 14:00 ngày 15/09/2026.",
+            expected: "1 tool call: schedule_appointment(SV2026001, ...) → SUCCESS"
+        },
+        {
+            id: "TC04",
+            question: "Em là sinh viên SV2026002. Em muốn biết thông tin cố vấn học tập của em và đặt lịch hẹn tư vấn với cố vấn đó vào lúc 10:00 ngày 20/09/2026.",
+            expected: "Multi-step: academic_query(SV2026002) → schedule_appointment(SV2026002, advisor=TS. Lê Thị B)"
+        },
+        {
+            id: "TC05",
+            question: "Cho tôi xin thông tin học vụ của sinh viên SV9999999.",
+            expected: "1 tool call: academic_query(SV9999999) → NOT_FOUND (Anti-Hallucination)"
+        }
+    ];
+
+    // =========================================================================
+    // TOOL IMPLEMENTATIONS
+    // =========================================================================
+    function executeAcademicQuery(studentId) {
+        const sid = studentId.trim().toUpperCase();
+        const student = MOCK_DATABASE[sid];
+        if (student) {
+            return { status: "SUCCESS", student_id: studentId, data: student };
+        }
+        return { status: "NOT_FOUND", message: `Không tìm thấy dữ liệu sinh viên có mã '${studentId}'` };
+    }
+
+    function executeScheduleAppointment(studentId, datetimeStr, advisorName) {
+        return {
+            status: "SUCCESS",
+            booking_id: `BK-${studentId}-99`,
+            student_id: studentId,
+            datetime: datetimeStr,
+            advisor: advisorName,
+            message: `Đặt lịch thành công cho sinh viên ${studentId} với ${advisorName} vào lúc ${datetimeStr}.`
+        };
+    }
+
+    // =========================================================================
+    // MOCK LLM BRAIN (Rule-based, mô phỏng Gemini decisions)
+    // =========================================================================
+    function mockLLMReason(prompt, history) {
+        const p = prompt.toLowerCase();
+        const hasAcademic = history.some(h => h.tool === "academic_query");
+        const hasSchedule = history.some(h => h.tool === "schedule_appointment");
+
+        // TC04 step 2: Sau khi tra cứu cố vấn → đặt lịch với tên cố vấn từ Obs
+        if ((p.includes("thông tin cố vấn") || p.includes("cố vấn học tập")) && p.includes("đặt lịch")) {
+            if (!hasAcademic) {
+                const sid = extractStudentId(prompt) || "SV2026002";
+                return {
+                    type: "tool_call",
+                    tool: "academic_query",
+                    args: { student_id: sid },
+                    thought: `Người dùng vừa yêu cầu tra cứu thông tin cố vấn vừa đặt lịch. Tôi cần tra cứu academic_query(${sid}) trước để biết tên cố vấn.`
+                };
+            }
+            if (hasAcademic && !hasSchedule) {
+                const lastObs = history.filter(h => h.tool === "academic_query").slice(-1)[0].observation;
+                const advisor = lastObs.data?.advisor || "PGS.TS Nguyễn Văn A";
+                return {
+                    type: "tool_call",
+                    tool: "schedule_appointment",
+                    args: { student_id: "SV2026002", datetime_str: "10:00 ngày 20/09/2026", advisor_name: advisor },
+                    thought: `Đã có thông tin cố vấn '${advisor}' từ Observation trước. Tôi tiến hành gọi schedule_appointment cho SV2026002.`
+                };
+            }
+        }
+
+        // TC03: chỉ đặt lịch
+        if (p.includes("đặt lịch") && !hasSchedule && !p.includes("thông tin cố vấn")) {
+            return {
+                type: "tool_call",
+                tool: "schedule_appointment",
+                args: { student_id: "SV2026001", datetime_str: "14:00 ngày 15/09/2026", advisor_name: "PGS.TS Nguyễn Văn A" },
+                thought: "Người dùng yêu cầu đặt lịch hẹn tư vấn cho SV2026001 với cố vấn 'PGS.TS Nguyễn Văn A'. Tôi sẽ gọi tool schedule_appointment."
+            };
+        }
+
+        // TC02 / TC05: tra cứu
+        if (p.includes("tra cứu") || p.includes("thông tin học vụ") || /sv\d+/i.test(prompt)) {
+            const sid = extractStudentId(prompt) || "SV2026001";
+            return {
+                type: "tool_call",
+                tool: "academic_query",
+                args: { student_id: sid },
+                thought: `Người dùng muốn tra cứu thông tin học vụ của sinh viên ${sid}. Tôi sẽ gọi tool academic_query.`
+            };
+        }
+
+        // TC01: câu hỏi chung
+        return {
+            type: "text",
+            content: "Chào bạn! Quy chế học vụ VinUni quy định sinh viên tích lũy tối thiểu 120 tín chỉ, duy trì GPA ≥ 2.0 để tốt nghiệp. Các môn học được đánh giá theo thang điểm chữ (A-F) tương ứng thang điểm 4.0. Sinh viên được phân công cố vấn học tập để tư vấn về lộ trình học tập và đăng ký môn học.",
+            thought: "Câu hỏi chung về quy chế học vụ, trả lời trực tiếp không cần gọi Tool."
+        };
+    }
+
+    function extractStudentId(prompt) {
+        const m = prompt.match(/SV\d+/i);
+        return m ? m[0].toUpperCase() : null;
+    }
+
+    // =========================================================================
+    // REACT AGENT LOOP
+    // =========================================================================
+    let traceLogData = [];
+
+    async function runReActAgent(userQuery, autoDemoMode = false) {
+        const history = [];
+        const trace = [];
+        let step = 0;
+        const MAX = 5;
+        const p = userQuery.toLowerCase();
+
+        while (step < MAX) {
+            step++;
+            
+            // Mô phỏng latency
+            await sleep(autoDemoMode ? 2000 : 800);
+            
+            const decision = mockLLMReason(userQuery, history);
+            
+            // Append Thought
+            trace.push({
+                step,
+                type: "thought",
+                content: decision.thought,
+                latency_ms: (autoDemoMode ? 2000 : 800) + Math.floor(Math.random() * 400)
+            });
+            
+            // Hiển thị thought lên trace log
+            appendTraceEvent(trace[trace.length - 1]);
+            
+            if (decision.type === "text") {
+                // Trả lời trực tiếp
+                trace.push({
+                    step: step + 0.5,
+                    type: "final",
+                    content: decision.content,
+                    latency_ms: autoDemoMode ? 1500 : 600
+                });
+                appendTraceEvent(trace[trace.length - 1]);
+                break;
+            }
+            
+            if (decision.type === "tool_call") {
+                // Tool Call
+                const actionEvent = {
+                    step,
+                    type: "action",
+                    tool: decision.tool,
+                    args: decision.args,
+                    latency_ms: 0,
+                    isFirstTool: step === 1 && decision.tool !== null
+                };
+                trace.push(actionEvent);
+                appendTraceEvent(actionEvent);
+                
+                await sleep(autoDemoMode ? 1500 : 600);
+                
+                // Execute tool
+                let observation;
+                if (decision.tool === "academic_query") {
+                    observation = executeAcademicQuery(decision.args.student_id);
+                } else if (decision.tool === "schedule_appointment") {
+                    observation = executeScheduleAppointment(
+                        decision.args.student_id,
+                        decision.args.datetime_str,
+                        decision.args.advisor_name
+                    );
+                }
+                
+                // Observation
+                const obsEvent = {
+                    step,
+                    type: "observation",
+                    tool: decision.tool,
+                    data: observation,
+                    latency_ms: autoDemoMode ? 500 : 50
+                };
+                trace.push(obsEvent);
+                appendTraceEvent(obsEvent);
+                history.push({ tool: decision.tool, observation });
+                
+                // Sinh Final Answer từ Obs
+                const finalText = summarize(observation, decision.tool);
+                trace.push({
+                    step: step + 0.5,
+                    type: "final",
+                    content: finalText,
+                    latency_ms: autoDemoMode ? 1500 : 300
+                });
+                appendTraceEvent(trace[trace.length - 1]);
+                
+                // TC04: cần 2 tools xong mới final
+                if (p.includes("thông tin cố vấn") && p.includes("đặt lịch") && 
+                    decision.tool === "schedule_appointment" && hasAcademic) {
+                    // TC04 đã hoàn thành 2 bước, break
+                    break;
+                } else if (decision.tool === "schedule_appointment") {
+                    break;
+                }
+            }
+        }
+        
+        return { trace, history };
+    }
+
+    function summarize(obs, tool) {
+        if (obs.status === "NOT_FOUND") {
+            return `Không tìm thấy dữ liệu sinh viên có mã '${obs.student_id || ""}'. Vui lòng kiểm tra lại mã sinh viên.`;
+        }
+        if (tool === "academic_query" && obs.data) {
+            return `Kết quả tra cứu cho sinh viên ${obs.student_id} (${obs.data.full_name}): Lớp ${obs.data.class}, GPA: ${obs.data.gpa}, Email: ${obs.data.email}, Trạng thái: ${obs.data.status}, Cố vấn: ${obs.data.advisor}.`;
+        }
+        return obs.message || JSON.stringify(obs);
+    }
+
+    function sleep(ms) {
+        return new Promise(r => setTimeout(r, ms));
+    }
+
+    // =========================================================================
+    // UI FUNCTIONS
+    // =========================================================================
+    
+    // Thêm message vào chat
+    function addChatMessage(role, content) {
+        const container = document.getElementById('chatContainer');
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'}`;
+        
+        const bubbleClass = role === 'user' 
+            ? 'bg-blue-500 text-white rounded-2xl rounded-br-md'
+            : 'bg-gray-100 text-gray-800 rounded-2xl rounded-bl-md';
+        
+        msgDiv.innerHTML = `
+            <div class="${bubbleClass} px-4 py-3 max-w-[85%]">
+                <p class="whitespace-pre-wrap text-sm leading-relaxed">${escapeHtml(content)}</p>
+            </div>
+        `;
+        
+        container.appendChild(msgDiv);
+        container.scrollTop = container.scrollHeight;
+    }
+
+    // Thêm typing indicator
+    function addTypingIndicator() {
+        const container = document.getElementById('chatContainer');
+        const typingDiv = document.createElement('div');
+        typingDiv.id = 'typingIndicator';
+        typingDiv.className = 'flex justify-start';
+        typingDiv.innerHTML = `
+            <div class="bg-gray-100 rounded-2xl rounded-bl-md px-4 py-3">
+                <div class="flex gap-1">
+                    <span class="typing-dot w-2 h-2 bg-gray-400 rounded-full"></span>
+                    <span class="typing-dot w-2 h-2 bg-gray-400 rounded-full"></span>
+                    <span class="typing-dot w-2 h-2 bg-gray-400 rounded-full"></span>
+                </div>
+            </div>
+        `;
+        container.appendChild(typingDiv);
+        container.scrollTop = container.scrollHeight;
+        return typingDiv;
+    }
+
+    // Xóa typing indicator
+    function removeTypingIndicator() {
+        const indicator = document.getElementById('typingIndicator');
+        if (indicator) indicator.remove();
+    }
+
+    // Thêm event vào trace log
+    function appendTraceEvent(event) {
+        const container = document.getElementById('traceLog');
+        
+        // Xóa placeholder nếu có
+        const placeholder = container.querySelector('.text-center');
+        if (placeholder) placeholder.remove();
+        
+        const eventDiv = document.createElement('div');
+        eventDiv.className = 'animate-fade-in';
+        
+        let bgClass, borderClass, icon, label, content;
+        
+        switch (event.type) {
+            case 'thought':
+                bgClass = 'bg-purple-50';
+                borderClass = 'border-purple-500';
+                icon = '💭';
+                label = 'Thought';
+                content = event.content;
+                break;
+            case 'action':
+                bgClass = 'bg-blue-50';
+                borderClass = 'border-blue-500';
+                icon = event.tool === 'academic_query' ? '🔍' : '📅';
+                label = 'Action';
+                content = `<strong>${event.tool}</strong><br>Args: ${JSON.stringify(event.args, null, 2)}`;
+                if (event.isFirstTool) {
+                    eventDiv.classList.add('highlight-action');
+                }
+                break;
+            case 'observation':
+                bgClass = 'bg-green-50';
+                borderClass = 'border-green-500';
+                icon = '📥';
+                label = 'Observation';
+                content = `<pre class="text-xs overflow-x-auto">${JSON.stringify(event.data, null, 2)}</pre>`;
+                break;
+            case 'final':
+                bgClass = 'bg-amber-50';
+                borderClass = 'border-amber-500';
+                icon = '✅';
+                label = 'Final Answer';
+                content = event.content;
+                break;
+            case 'error':
+                bgClass = 'bg-red-50';
+                borderClass = 'border-red-500';
+                icon = '❌';
+                label = 'Error';
+                content = event.content;
+                break;
+        }
+        
+        eventDiv.innerHTML = `
+            <div class="${bgClass} border-l-4 ${borderClass} rounded-r-lg p-3 shadow-sm">
+                <div class="flex items-center gap-2 mb-1">
+                    <span>${icon}</span>
+                    <span class="font-bold text-xs uppercase tracking-wide ${borderClass.replace('border-', 'text-')}">${label}</span>
+                    <span class="text-xs text-gray-400 ml-auto">Step ${event.step}</span>
+                </div>
+                <div class="text-sm text-gray-700">${content}</div>
+                ${event.latency_ms ? `<div class="text-xs text-gray-400 mt-1">⏱️ ${event.latency_ms}ms</div>` : ''}
+            </div>
+        `;
+        
+        container.appendChild(eventDiv);
+        container.scrollTop = container.scrollHeight;
+        
+        // Lưu vào trace log data
+        traceLogData.push(event);
+    }
+
+    // Xóa trace log
+    function clearTraceLog() {
+        const container = document.getElementById('traceLog');
+        container.innerHTML = `
+            <div class="text-center text-gray-400 py-8">
+                <p class="text-4xl mb-2">🔍</p>
+                <p class="text-sm">Chọn test case để xem trace log</p>
+            </div>
+        `;
+        traceLogData = [];
+    }
+
+    // Chạy 1 test case
+    async function runTestCase(tcNumber) {
+        const tc = TEST_CASES[tcNumber - 1];
+        
+        // Disable buttons
+        setButtonsDisabled(true);
+        
+        // Add user message to chat
+        addChatMessage('user', tc.question);
+        
+        // Add typing indicator
+        addTypingIndicator();
+        
+        // Wait a bit
+        await sleep(1000);
+        
+        // Remove typing indicator
+        removeTypingIndicator();
+        
+        // Run ReAct agent
+        const result = await runReActAgent(tc.question);
+        
+        // Add agent response to chat
+        const finalEvent = result.trace.filter(e => e.type === 'final').slice(-1)[0];
+        if (finalEvent) {
+            addChatMessage('agent', finalEvent.content);
+        }
+        
+        // Re-enable buttons
+        setButtonsDisabled(false);
+    }
+
+    // Gửi message từ input
+    async function sendMessage() {
+        const input = document.getElementById('chatInput');
+        const message = input.value.trim();
+        
+        if (!message) return;
+        
+        input.value = '';
+        
+        // Disable buttons
+        setButtonsDisabled(true);
+        
+        // Add user message
+        addChatMessage('user', message);
+        
+        // Add typing indicator
+        addTypingIndicator();
+        await sleep(1000);
+        removeTypingIndicator();
+        
+        // Run agent
+        const result = await runReActAgent(message);
+        
+        // Add agent response
+        const finalEvent = result.trace.filter(e => e.type === 'final').slice(-1)[0];
+        if (finalEvent) {
+            addChatMessage('agent', finalEvent.content);
+        }
+        
+        // Re-enable buttons
+        setButtonsDisabled(false);
+    }
+
+    // Tải trace JSON
+    function downloadTraceJSON() {
+        if (traceLogData.length === 0) {
+            alert('Chưa có trace log để tải. Vui lòng chạy ít nhất 1 test case.');
+            return;
+        }
+        
+        const jsonData = traceLogData.map(e => ({
+            step: e.step,
+            type: e.type.toUpperCase(),
+            tool: e.tool || null,
+            content: e.content || null,
+            data: e.data || null,
+            latency_ms: e.latency_ms || null
+        }));
+        
+        const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'trace_waterfall.json';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    // Helper functions
+    function setButtonsDisabled(disabled) {
+        document.querySelectorAll('button').forEach(btn => {
+            if (btn.id !== 'btnSend') {
+                btn.disabled = disabled;
+            }
+        });
+        document.getElementById('btnSend').disabled = disabled;
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // =========================================================================
+    // REAL MCP API FUNCTIONS
+    // =========================================================================
+    
+    function showRealAPIStatus(icon, text, show = true) {
+        const statusDiv = document.getElementById('real-api-status');
+        const statusIcon = document.getElementById('status-icon');
+        const statusText = document.getElementById('status-text');
+        if (show) {
+            statusDiv.classList.remove('hidden');
+            statusIcon.textContent = icon;
+            statusText.textContent = text;
+        } else {
+            statusDiv.classList.add('hidden');
+        }
+    }
+
+    function showRealAPIResponse(data) {
+        const responseDiv = document.getElementById('real-api-response');
+        responseDiv.classList.remove('hidden');
+        responseDiv.textContent = JSON.stringify(data, null, 2);
+    }
+
+    async function checkHealth() {
+        const endpoint = document.getElementById('real-api-endpoint').value;
+        showRealAPIStatus('⏳', 'Đang kiểm tra kết nối...');
+        
+        try {
+            const res = await fetch(endpoint.replace('/chat', '/health'));
+            const data = await res.json();
+            
+            if (data.status === 'healthy') {
+                showRealAPIStatus('✅', `Server healthy - MCP: ${data.mcp_connected ? 'Connected' : 'Disconnected'}`);
+            } else {
+                showRealAPIStatus('❌', `Server unhealthy: ${data.error || 'Unknown error'}`);
+            }
+        } catch (err) {
+            showRealAPIStatus('❌', `Lỗi kết nối: ${err.message}`);
+        }
+    }
+
+    async function callRealAPI(mode) {
+        const endpoint = document.getElementById('real-api-endpoint').value;
+        const studentId = document.getElementById('real-api-student-id').value || 'SV2026001';
+        const customPrompt = document.getElementById('real-api-prompt').value.trim();
+        
+        // Build prompt based on mode
+        let prompt;
+        switch (mode) {
+            case 'query':
+                prompt = customPrompt || `Tra cứu thông tin học vụ của sinh viên ${studentId}`;
+                break;
+            case 'book':
+                prompt = customPrompt || `Đặt lịch hẹn tư vấn cho sinh viên ${studentId} với PGS.TS Nguyễn Văn A vào lúc 14:00 ngày 15/09/2026`;
+                break;
+            case 'multi':
+                prompt = customPrompt || `Em là sinh viên ${studentId}. Em muốn biết thông tin cố vấn học tập của em và đặt lịch hẹn tư vấn với cố vấn đó vào lúc 10:00 ngày 20/09/2026`;
+                break;
+            default:
+                prompt = customPrompt || `Tra cứu thông tin học vụ của sinh viên ${studentId}`;
+        }
+        
+        showRealAPIStatus('⏳', 'Đang gọi MCP Server...');
+        showRealAPIResponse(null);
+        
+        try {
+            const res = await fetch(endpoint, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({prompt: prompt})
+            });
+            
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+            }
+            
+            const data = await res.json();
+            
+            if (data.error) {
+                showRealAPIStatus('❌', `Lỗi: ${data.error}`);
+                showRealAPIResponse({error: data.error});
+            } else {
+                showRealAPIStatus('✅', `Thành công! Intent: ${data.intent || 'N/A'}, Tool: ${data.tool_name || 'N/A'}`);
+                showRealAPIResponse(data);
+            }
+        } catch (err) {
+            showRealAPIStatus('❌', `Lỗi: ${err.message}`);
+            showRealAPIResponse({
+                error: err.message,
+                hint: '💡 Hãy chạy: python src/api_server.py (HTTP wrapper cho MCP server)'
+            });
+        }
+    }
+    </script>
+</body>
+</html>

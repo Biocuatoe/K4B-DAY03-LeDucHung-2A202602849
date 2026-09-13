@@ -1,8 +1,11 @@
 google-genai
 openai
 anthropic
+groq               # Free LLM for casual intent responses
 python-dotenv
 requests
 pydantic
 rich
 gradio
+flask>=2.0  # HTTP wrapper for demo (src/api_server.py)
+flask-cors  # CORS support for browser demo

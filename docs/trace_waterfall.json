@@ -3,9 +3,9 @@
     "step": 1,
     "query": "Chào bạn, bạn có thể giới thiệu quy chế học vụ cơ bản của Đại học VinUni không?",
     "action_type": "FINAL_ANSWER",
-    "thought": "Gemini phản hồi trực tiếp bằng văn bản (không cần gọi công cụ).",
-    "output": "Chào bạn! Rất vui được hỗ trợ bạn. Dưới đây là tóm tắt những điểm quan trọng trong quy chế học vụ cơ bản tại Đại học VinUni:\n\n---\n\n### 1. **Ngôn ngữ Giảng dạy & Hệ thống Tín chỉ**\n* **Ngôn ngữ:** 100% các chương trình đào tạo tại VinUni được giảng dạy bằng **tiếng Anh** (trừ một số môn học bắt buộc theo quy định của Bộ Giáo dục & Đào tạo như Triết học Mác - Lênin, Tư tưởng Hồ Chí Minh, Quốc phòng - An ninh,...).\n* **Đơn vị tích lũy:** Học tập theo hệ thống **tín chỉ (Credit System)**. Mỗi môn học thường có từ 2 đến 4 tín chỉ tùy theo khối lượng học tập.\n\n---\n\n### 2. **Thang điểm & Tích lũy Điểm (GPA)**\n* **Thang điểm chữ (Letter Grade):** A+, A, A-, B+, B, B-, C+, C, C-, D+, D, F.\n* **Thang điểm 4.0 (Grade Point Average - GPA):**\n  * **GPA Học kỳ (SGPA):** Điểm trung bình trọng số của các môn trong một học kỳ.\n  * **GPA Tích lũy (CGPA):** Điểm trung bình trọng số tổng hợp của tất cả các môn đã hoàn thành tính đến thời điểm hiện tại.\n\n---\n\n### 3. **Khối lượng Học tập & Đăng ký Môn học**\n* **Học kỳ chính (Mùa Thu / Mùa Xuân):**\n  * Sinh viên toàn thời gian đăng ký trung bình từ **12 - 18 tín chỉ/học kỳ**.\n  * Cần giữ mức tối thiểu (thường là 12 tín chỉ) để duy trì trạng thái sinh viên toàn thời gian (Full-time student).\n* **Thời gian rút/hủy môn học (Add/Drop & Withdrawal):** Sinh viên có thể thêm/bớt môn trong thời gian quy định đầu học kỳ hoặc xin rút môn (nhận điểm W) trước thời hạn ấn định.\n\n---\n\n### 4. **Trạng thái Học tập & Cảnh báo Học tập (Academic Standing & Probation)**\n* **Học tập Bình thường (Good Standing):** Duy trì CGPA từ **2.0/4.0** trở lên.\n* **Cảnh báo Học tập (Academic Probation):** Sinh viên bị rơi vào trạng thái cảnh báo nếu CGPA giảm xuống dưới **2.0/4.0** tại cuối học kỳ.\n* **Buộc thôi học (Academic Dismissal):** Nếu bị cảnh báo học tập liên tiếp quá số học kỳ quy định mà không cải thiện GPA theo chỉ tiêu đặt ra.\n\n---\n\n### 5. **Liêm chính Học thuật (Academic Integrity)**\n* VinUni áp dụng tiêu chuẩn rất nghiêm ngặt về **Liêm chính Học thuật**.\n* Các hành vi vi phạm như **gian lận, đạo văn (plagiarism), tự đạo văn, cậy nhờ/thuê người làm bài** sẽ bị xử lý nghiêm khắc (có thể nhận điểm F môn học, đình chỉ hoặc buộc thôi học).\n\n---\n\n### 6. **Cố vấn Học tập (Academic Advisor)**\n* Mỗi sinh viên VinUni đều được phân công một **Cố vấn Học tập (Academic Advisor)** đồng hành trong suốt quá trình học tập để tư vấn về lộ trình học, đăng ký môn học và hỗ trợ khi gặp khó khăn.\n\n---\n\n*Lưu ý: Nếu bạn muốn tra cứu chi tiết thông tin hồ sơ/học vụ cá nhân hoặc đặt lịch hẹn tư vấn với Cố vấn học tập, bạn có thể cung cấp Mã sinh viên (Student ID) để mình hỗ trợ nhé!*",
-    "latency_ms": 8396.5
+    "thought": "Câu hỏi chung về quy chế học vụ, trả lời trực tiếp không cần gọi Tool.",
+    "output": "[Mock Agent Response]: Xin chào! Quy chế học vụ VinUni yêu cầu sinh viên tích lũy tối thiểu 120 tín chỉ và duy trì GPA trên 2.0 để tốt nghiệp.",
+    "latency_ms": 0.0
   },
   {
     "step": 1,
@@ -27,7 +27,7 @@
         "advisor": "PGS.TS Nguyễn Văn A"
       }
     },
-    "latency_ms": 2704.46
+    "latency_ms": 0.0
   },
   {
     "step": 2,
@@ -35,7 +35,7 @@
     "action_type": "FINAL_ANSWER",
     "thought": "Đã nhận Observation từ academic_query. Tổng hợp Final Answer.",
     "output": "[Mock Agent Response]: Kết quả tra cứu cho sinh viên SV2026001 (Nguyễn Văn An): Lớp AI-K4, GPA: 3.85, Email: an.nv@vinuni.edu.vn, Trạng thái: Đang học, Cố vấn: PGS.TS Nguyễn Văn A.",
-    "latency_ms": 1042.95
+    "latency_ms": 0.0
   },
   {
     "step": 1,
@@ -55,7 +55,7 @@
       "advisor": "PGS.TS Nguyễn Văn A",
       "message": "Đặt lịch thành công cho sinh viên SV2026001 với PGS.TS Nguyễn Văn A vào lúc 14:00 ngày 15/09/2026."
     },
-    "latency_ms": 1090.81
+    "latency_ms": 0.0
   },
   {
     "step": 2,
@@ -63,7 +63,7 @@
     "action_type": "FINAL_ANSWER",
     "thought": "Đã nhận Observation từ schedule_appointment. Tổng hợp Final Answer.",
     "output": "[Mock Agent Response]: Đặt lịch thành công cho sinh viên SV2026001 với PGS.TS Nguyễn Văn A vào lúc 14:00 ngày 15/09/2026.",
-    "latency_ms": 1053.7
+    "latency_ms": 0.0
   },
   {
     "step": 1,
@@ -85,7 +85,7 @@
         "advisor": "TS. Lê Thị B"
       }
     },
-    "latency_ms": 1140.71
+    "latency_ms": 0.0
   },
   {
     "step": 2,
@@ -105,7 +105,7 @@
       "advisor": "TS. Lê Thị B",
       "message": "Đặt lịch thành công cho sinh viên SV2026002 với TS. Lê Thị B vào lúc 10:00 ngày 20/09/2026."
     },
-    "latency_ms": 1077.99
+    "latency_ms": 0.0
   },
   {
     "step": 3,
@@ -113,7 +113,7 @@
     "action_type": "FINAL_ANSWER",
     "thought": "Đã có đầy đủ Observation của cả academic_query và schedule_appointment. Tổng hợp Final Answer đa bước.",
     "output": "[Mock Agent Response]: Tổng hợp kết quả đa bước:\n1. Tra cứu cố vấn: Cố vấn học tập của bạn là TS. Lê Thị B.\n2. Đặt lịch: Đặt lịch thành công cho sinh viên SV2026002 với TS. Lê Thị B vào lúc 10:00 ngày 20/09/2026.",
-    "latency_ms": 1124.6
+    "latency_ms": 0.0
   },
   {
     "step": 1,
@@ -127,7 +127,7 @@
       "status": "NOT_FOUND",
       "message": "Không tìm thấy dữ liệu sinh viên có mã 'SV9999999'"
     },
-    "latency_ms": 1085.33
+    "latency_ms": 0.0
   },
   {
     "step": 2,
@@ -135,6 +135,6 @@
     "action_type": "FINAL_ANSWER",
     "thought": "Đã nhận Observation từ academic_query. Tổng hợp Final Answer.",
     "output": "[Mock Agent Response]: Không tìm thấy dữ liệu sinh viên có mã 'SV9999999'",
-    "latency_ms": 1091.89
+    "latency_ms": 0.0
   }
 ]
